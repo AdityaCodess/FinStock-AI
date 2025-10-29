@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinStock AI - Dashboard</title>
+    <link rel="stylesheet" href="frontend/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>FinStock AI</h1>
+        <div class="search-container">
+            <input type="text" id="stock-search" placeholder="Search for Indian stocks... (e.g., RELIANCE or Infosys)">
+            <div id="search-results" class="search-results-dropdown"></div>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <section class="widget" id="widget-stock-info">
+            <h2 id="stock-name-header">Select a Stock to Begin</h2>
+            <div class="stock-info-details">
+                <span id="stock-symbol-header"></span>
+                <span id="stock-price-header"></span>
+                <span id="stock-change-header"></span>
+            </div>
+            <p id="stock-sector-industry"></p>
+        </section>
+
+        <section class="widget" id="widget-statistics">
+            <h3>Statistical DNA</h3>
+            <table id="statistics-table">
+                <tbody>
+                    <tr>
+                        <td>Data From</td>
+                        <td id="stat-start-date">-</td>
+                    </tr>
+                    <tr>
+                        <td>Data Until</td>
+                        <td id="stat-end-date">-</td>
+                    </tr>
+                    <tr>
+                        <td>Mean Price</td>
+                        <td id="stat-mean">-</td>
+                    </tr>
+                    <tr>
+                        <td>Median Price</td>
+                        <td id="stat-median">-</td>
+                    </tr>
+                    <tr>
+                        <td>Std. Dev Price</td>
+                        <td id="stat-std_deviation">-</td>
+                    </tr>
+                    <tr>
+                        <td>Variance Price</td>
+                        <td id="stat-variance">-</td>
+                    </tr>
+                    <tr>
+                        <td>Skewness</td>
+                        <td id="stat-skewness">-</td>
+                    </tr>
+                    <tr>
+                        <td>Kurtosis</td>
+                        <td id="stat-kurtosis">-</td>
+                    </tr>
+                    <tr>
+                        <td>Prob (Next Day Up)</td>
+                        <td id="stat-probability_next_day_up">-</td>
+                    </tr>
+                    <tr>
+                        <td>Prob (Next Day Down)</td>
+                        <td id="stat-probability_next_day_down">-</td>
+                    </tr>
+                    <tr>
+                        <td>Avg Daily Return %</td>
+                        <td id="stat-mean_daily_return_percent">-</td>
+                    </tr>
+                    <tr>
+                        <td>Volatility (Std Dev Return %)</td>
+                        <td id="stat-std_dev_daily_return_percent">-</td>
+                    </tr>
+                    <tr>
+                        <td>P(Up | Up Yesterday) %</td>
+                        <td id="stat-cond_prob_up_given_up">-</td>
+                    </tr>
+                    <tr>
+                        <td>P(Down | Down Yesterday) %</td>
+                        <td id="stat-cond_prob_down_given_down">-</td>
+                    </tr>
+                    <tr>
+                        <td>P(2 Day Up Streak) %</td>
+                        <td id="stat-prob_2_days_up_streak">-</td>
+                    </tr>
+                    <tr>
+                        <td>P(2 Day Down Streak) %</td>
+                        <td id="stat-prob_2_days_down_streak">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="widget histogram-widget" id="widget-return-histogram">
+            <h3>Daily Return Distribution (%)</h3>
+            <canvas id="returnHistogramChart"></canvas>
+        </section>
+
+        <section class="widget" id="widget-ai-predictions">
+            <h3>AI Predictions</h3>
+            <div class="prediction-tabs">
+                <button class="tab-btn active" data-tab="short-term">Short-Term</button>
+                <button class="tab-btn" data-tab="long-term">Long-Term</button>
+                <button class="tab-btn" data-tab="intraday">Intraday</button>
+            </div>
+            <div id="tab-short-term" class="tab-content active">
+                <h4>7-Day Forecast</h4>
+                <p class="prediction-value" id="pred-short-term-value">- %</p>
+                <p class="recommendation" id="pred-short-term-rec">--</p>
+            </div>
+            <div id="tab-long-term" class="tab-content">
+                <h4>1-Year Forecast</h4>
+                <p class="prediction-value" id="pred-long-term-value">₹ --</p>
+                <p class="recommendation" id="pred-long-term-rec">--</p>
+            </div>
+            <div id="tab-intraday" class="tab-content">
+                <h4>Similarity Engine (Placeholder)</h4>
+                <p id="pred-intraday-match">--</p>
+                <p class="prediction-value" id="pred-intraday-pred">--</p>
+            </div>
+        </section>
+
+        <section class="widget" id="widget-news">
+            <h3>News & Sentiment</h3>
+            <div class="prediction-tabs">
+                <button class="tab-btn active" data-tab="stock-news">Stock News</button>
+                <button class="tab-btn" data-tab="market-news">Market News</button>
+            </div>
+            <div id="tab-stock-news" class="tab-content active">
+                <p class="sentiment" id="news-stock-sentiment">Sentiment: <span class="text-neutral">--</span></p>
+                <p class="impact" id="news-stock-impact"></p>
+                <div id="stock-articles" class="articles-container"></div>
+            </div>
+            <div id="tab-market-news" class="tab-content">
+                <p class="sentiment" id="news-market-sentiment">Sentiment: <span class="text-neutral">--</span></p>
+                <p class="impact" id="news-market-impact"></p>
+                <div id="market-headlines" class="articles-container"></div>
+            </div>
+        </section>
+
+        <section class="widget price-chart-widget" id="widget-price-chart">
+            <h3>Historical Price Trend</h3>
+            <canvas id="priceHistoryChart"></canvas>
+        </section>
+    </main>
+
+    <div id="loader-overlay" class="hidden">
+        <div class="loader"></div>
+    </div>
+
+    <script src="frontend/js/ui.js"></script>
+    <script src="frontend/js/charts.js"></script>
+    <script src="frontend/js/main.js"></script>
+</body>
+
+</html>

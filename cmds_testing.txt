@@ -1,0 +1,13 @@
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python 1_collect_data.py
+python 2_train_simple_models.py
+
+
+
+Probability of price going down.
+
+Mean and Standard Deviation of daily returns.
+
+Conditional Probabilities (P(Up | Up yesterday) and P(Down | Down yesterday)).
+
+Probability of streaks (2 consecutive up/down days).

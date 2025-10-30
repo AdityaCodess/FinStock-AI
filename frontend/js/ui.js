@@ -23,20 +23,22 @@ function setupTabs(widgetId) {
     });
 }
 
-// --- Text/Value Helpers ---
+// --- Text/Value Helpers (FIXED) ---
 function updateText(elementId, text, defaultValue = '-') {
     const el = document.getElementById(elementId);
     if (el) {
         if (text === null || typeof text === 'undefined' || (typeof text === 'number' && !isFinite(text))) {
             el.textContent = defaultValue;
         } else if (typeof text === 'number') {
-             if (elementId.includes('price') || elementId.includes('value') || elementId.includes('mean') || elementId.includes('median')) {
-                 el.textContent = `₹${text.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; // Use Indian locale for currency
-             } else if (elementId.includes('percent') || elementId.includes('probability') || elementId.includes('prob_') || elementId.includes('return') || elementId.includes('streak')) {
-                 el.textContent = `${text.toFixed(2)}%`;
-             } else {
-                 el.textContent = text.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }); // More precision for general stats
-             }
+            // FIXED: Check for 'percent' or 'prob_' or 'streak' in the ID
+            if (elementId.includes('percent') || elementId.includes('probability') || elementId.includes('prob_') || elementId.includes('return') || elementId.includes('streak')) {
+                el.textContent = `${text.toFixed(2)}%`;
+            } else if (elementId.includes('price') || elementId.includes('value') || elementId.includes('mean') || elementId.includes('median')) {
+                el.textContent = `₹${text.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            } else {
+                // For Skewness, Kurtosis, Variance, Std. Dev Price
+                el.textContent = text.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+            }
         }
          else {
             el.textContent = text;
@@ -45,6 +47,7 @@ function updateText(elementId, text, defaultValue = '-') {
         console.warn(`UI Element not found: ${elementId}`);
     }
 }
+
 
 function updateSentiment(elementId, sentiment) {
     const el = document.getElementById(elementId);
@@ -71,7 +74,7 @@ function updateStockInfo(stockInfo) {
     if (changeEl && stockInfo.currentPrice && stockInfo.previousClose) {
         const change = stockInfo.currentPrice - stockInfo.previousClose;
         const changePercent = (change / stockInfo.previousClose) * 100;
-        changeEl.textContent = `${change > 0 ? '+' : ''}${change.toFixed(2)} (${change > 0 ? '+' : ''}${changePercent.toFixed(2)}%)`; // Add +/- sign
+        changeEl.textContent = `${change > 0 ? '+' : ''}${change.toFixed(2)} (${change > 0 ? '+' : ''}${changePercent.toFixed(2)}%)`;
         changeEl.classList.remove('text-green', 'text-red', 'text-neutral');
         if (change > 0) changeEl.classList.add('text-green');
         else if (change < 0) changeEl.classList.add('text-red');
@@ -82,18 +85,15 @@ function updateStockInfo(stockInfo) {
 }
 
 function updateStatistics(statistics) {
-    // Existing fields
     updateText('stat-start-date', statistics.start_date);
     updateText('stat-end-date', statistics.end_date);
     updateText('stat-mean', statistics.mean);
     updateText('stat-median', statistics.median);
     updateText('stat-std_deviation', statistics.std_deviation);
     updateText('stat-variance', statistics.variance);
-    updateText('stat-skewness', statistics.skewness);
-    updateText('stat-kurtosis', statistics.kurtosis);
+    updateText('stat-skewness', statistics.skewness); // Updates value in histogram widget
+    updateText('stat-kurtosis', statistics.kurtosis); // Updates value in histogram widget
     updateText('stat-probability_next_day_up', statistics.probability_next_day_up);
-
-    // --- ADD LINES FOR NEW FIELDS ---
     updateText('stat-probability_next_day_down', statistics.probability_next_day_down);
     updateText('stat-mean_daily_return_percent', statistics.mean_daily_return_percent);
     updateText('stat-std_dev_daily_return_percent', statistics.std_dev_daily_return_percent);
@@ -104,18 +104,20 @@ function updateStatistics(statistics) {
 }
 
 function updateAIPredictions(aiPredictions) {
-    updateText('pred-short-term-value', aiPredictions.short_term.forecast_7d_percent);
+    // FIXED: Use the correct ID 'pred-short-term-percent'
+    updateText('pred-short-term-percent', aiPredictions.short_term.forecast_7d_percent);
     updateText('pred-short-term-rec', aiPredictions.short_term.recommendation);
+    
     updateText('pred-long-term-value', aiPredictions.long_term.forecast_1y);
     updateText('pred-long-term-rec', aiPredictions.long_term.recommendation);
-    updateIntradayWidget(aiPredictions.intraday); // Initial snapshot
+    
+    updateIntradayWidget(aiPredictions.intraday);
 }
 
 function updateNews(newsSentiment) {
-    // Stock News
     updateSentiment('news-stock-sentiment span', newsSentiment.stock_news.overall_sentiment);
     const stockImpactEl = document.getElementById('news-stock-impact');
-    if (stockImpactEl) stockImpactEl.textContent = ''; // Clear impact
+    if (stockImpactEl) stockImpactEl.textContent = '';
 
     const stockArticlesEl = document.getElementById('stock-articles');
     if (stockArticlesEl) {
@@ -125,7 +127,6 @@ function updateNews(newsSentiment) {
                 let sentimentClass = 'text-neutral';
                 if (article.sentiment_label === 'Positive') sentimentClass = 'text-green';
                 else if (article.sentiment_label === 'Negative') sentimentClass = 'text-red';
-
                 stockArticlesEl.innerHTML += `
                     <div class="article">
                         <h5><span>${article.source || 'Source'}</span> ${article.headline || 'No Headline'} <span class="${sentimentClass}">(${article.sentiment_label || 'Neutral'})</span></h5>
@@ -136,10 +137,9 @@ function updateNews(newsSentiment) {
         }
     }
 
-    // Market News
     updateSentiment('news-market-sentiment span', newsSentiment.global_market.overall_market_sentiment);
     const marketImpactEl = document.getElementById('news-market-impact');
-     if (marketImpactEl) marketImpactEl.textContent = ''; // Clear impact
+     if (marketImpactEl) marketImpactEl.textContent = '';
 
     const marketHeadlinesEl = document.getElementById('market-headlines');
     if (marketHeadlinesEl) {
@@ -154,7 +154,6 @@ function updateNews(newsSentiment) {
     }
 }
 
-// --- Separate function for WebSocket updates ---
 function updateIntradayWidget(intradayData) {
     if (!intradayData) return;
     console.log("Updating intraday widget with new data:", intradayData);

@@ -1,20 +1,18 @@
 # finstock-ai/backend/app/api/endpoints.py
 import sqlite3
-import traceback # For detailed error logging in /analyze
-import os       # For robust database path
-import pandas as pd # For pd.notna check
+import traceback
+import os
+import pandas as pd
+import numpy as np
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
-import numpy as np
 
-# Import services
 from app.services import analysis
 from app.services import prediction
 from app.services import news
 
-# --- Pydantic Models ---
-
+# --- Pydantic Models (Unchanged) ---
 class StockSearchResponse(BaseModel):
     symbol: str
     name: str
@@ -26,7 +24,7 @@ class StockInfo(BaseModel):
     sector: Optional[str] = None
     industry: Optional[str] = None
     marketCap: Optional[float] = None
-    currentPrice: Optional[float] = None # No alias, handle in endpoint
+    currentPrice: Optional[float] = None
     dayHigh: Optional[float] = None
     dayLow: Optional[float] = None
     previousClose: Optional[float] = None
@@ -36,7 +34,7 @@ class Statistics(BaseModel):
     end_date: Optional[str] = None
     mean: Optional[float] = None
     median: Optional[float] = None
-    mode: Optional[float] = None # Mode can sometimes be non-numeric if multiple modes
+    mode: Optional[float] = None
     std_deviation: Optional[float] = None
     variance: Optional[float] = None
     skewness: Optional[float] = None
@@ -50,22 +48,21 @@ class Statistics(BaseModel):
     percentile_75: Optional[float] = Field(None, alias="75_percentile")
     coeff_of_variation: Optional[float] = None
     probability_next_day_up: Optional[float] = None
-    # --- NEW FIELDS ---
     probability_next_day_down: Optional[float] = None
     mean_daily_return_percent: Optional[float] = None
-    std_dev_daily_return_percent: Optional[float] = None # Volatility
+    std_dev_daily_return_percent: Optional[float] = None
     cond_prob_up_given_up: Optional[float] = None
     cond_prob_down_given_down: Optional[float] = None
     prob_2_days_up_streak: Optional[float] = None
     prob_2_days_down_streak: Optional[float] = None
 
 class LongTermPrediction(BaseModel):
-    forecast_1y: Optional[float] = None # Make optional in case calculation fails
+    forecast_1y: Optional[float] = None
     recommendation: str
     confidence: Optional[float] = None
 
 class ShortTermPrediction(BaseModel):
-    forecast_7d_percent: Optional[float] = None # Make optional
+    forecast_7d_percent: Optional[float] = None
     recommendation: str
     confidence: Optional[float] = None
 
@@ -109,15 +106,10 @@ class AnalysisResponse(BaseModel):
     ai_predictions: AIPredictions
     news_sentiment: NewsSentiment
     historical_data: List[HistoricalDataPoint]
-    daily_returns_histogram: List[float] # List of daily return percentages
+    daily_returns_histogram: List[float]
 
-# --- Router Setup ---
-router = APIRouter(
-    prefix="/api",
-    tags=["API"]
-)
-
-# --- Database Connection ---
+# --- Router Setup (Unchanged) ---
+router = APIRouter(prefix="/api", tags=["API"])
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_FILE_PATH = os.path.join(base_dir, "data", "stocks.db")
 
@@ -131,25 +123,15 @@ def get_db_connection():
         raise HTTPException(status_code=500, detail=f"Database connection error: {e}")
 
 # --- API Endpoints ---
-
-@router.get(
-    "/search",
-    response_model=List[StockSearchResponse]
-)
-async def search_stocks(
-    q: Optional[str] = Query(None, min_length=2, description="Search query")
-):
-    """Search for stocks by symbol or name."""
+@router.get("/search", response_model=List[StockSearchResponse])
+async def search_stocks(q: Optional[str] = Query(None, min_length=2, description="Search query")):
     if q is None: return []
     search_query = f"%{q}%"
     conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT symbol, name FROM stocks WHERE symbol LIKE ? OR name LIKE ? LIMIT 10",
-            (search_query, search_query)
-        )
+        cursor.execute("SELECT symbol, name FROM stocks WHERE symbol LIKE ? OR name LIKE ? LIMIT 10", (search_query, search_query))
         stocks = cursor.fetchall()
         return [dict(row) for row in stocks]
     except Exception as e:
@@ -158,97 +140,84 @@ async def search_stocks(
     finally:
         if conn: conn.close()
 
-
-@router.get(
-    "/analyze",
-    response_model=AnalysisResponse
-)
+@router.get("/analyze", response_model=AnalysisResponse)
 async def analyze_stock(
-    symbol: str = Query(..., description="Stock symbol (e.g., RELIANCE.NS)")
+    symbol: str = Query(..., description="Stock symbol (e.g., RELIANCE.NS)"),
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)")
 ):
-    """
-    Get full analysis including historical data and daily returns for charts.
-    """
     try:
         # 1. Fetch Data
-        hist_data, info_data = analysis.get_stock_data(symbol, period="5y")
-        if not isinstance(info_data, dict):
-             print(f"Warning: info_data for {symbol} is not a dict: {info_data}")
-             info_data = {'symbol': symbol}
+        hist_data_raw, info_data = analysis.get_stock_data(symbol, start_date=start_date, end_date=end_date)
+        if not isinstance(info_data, dict): info_data = {'symbol': symbol}
 
-        # 2. Calculate Statistics AND get daily returns list
-        stats_dict, daily_returns_list = analysis.calculate_statistics(hist_data.copy())
+        # --- THIS IS THE FIX ---
+        # 2. Clean Data ONCE
+        if not isinstance(hist_data_raw.index, pd.DatetimeIndex):
+             hist_data_raw.index = pd.to_datetime(hist_data_raw.index, errors='coerce')
+             hist_data_raw.dropna(axis=0, subset=[hist_data_raw.index.name], inplace=True)
+        
+        hist_data = hist_data_raw.copy()
+        hist_data['Close'] = pd.to_numeric(hist_data['Close'], errors='coerce')
+        hist_data.dropna(axis=0, subset=['Close'], inplace=True) # Drop rows where Close is NaN
 
-        # 3. Get AI Predictions
-        long_term_pred_dict = prediction.get_long_term_prediction(hist_data.copy(), symbol)
-        short_term_pred_dict = prediction.get_short_term_prediction(hist_data.copy(), symbol)
-        intraday_pred_dict = prediction.get_intraday_prediction(symbol) # Dummy
+        if hist_data.empty:
+            raise HTTPException(status_code=404, detail="No valid historical data to analyze after cleaning.")
+        # --- END FIX ---
 
-        # 4. Get News & Sentiment
+        # 3. Calculate Statistics (using the CLEANED hist_data)
+        stats_dict, daily_returns_list = analysis.calculate_statistics(hist_data)
+
+        # 4. Get AI Predictions (using the CLEANED hist_data)
+        long_term_pred_dict = prediction.get_long_term_prediction(hist_data, symbol)
+        short_term_pred_dict = prediction.get_short_term_prediction(hist_data, symbol)
+        intraday_pred_dict = prediction.get_intraday_prediction(symbol)
+
+        # 5. Get News & Sentiment (Unchanged)
         company_name = info_data.get('shortName', info_data.get('longName', symbol))
         stock_news_dict = news.get_news_and_sentiment(symbol, company_name)
         global_market_dict = news.get_global_market_sentiment()
 
-        # 5. Format Historical Data for Charting
+        # 6. Format Historical Data for Charting (using the CLEANED hist_data)
         hist_data_chart = hist_data[['Close']].copy()
-        hist_data_chart.dropna(inplace=True)
-        historical_data_list = [] # Default empty list
-        if isinstance(hist_data_chart.index, pd.DatetimeIndex):
-             hist_data_chart.index = hist_data_chart.index.strftime('%Y-%m-%d')
-             hist_data_chart.reset_index(inplace=True)
-             index_col_name = hist_data_chart.columns[0]
-             hist_data_chart.rename(columns={index_col_name: 'date', 'Close': 'close'}, inplace=True)
-             historical_data_list = hist_data_chart.to_dict(orient='records')
+        hist_data_chart.index.name = 'Date'
+        hist_data_chart.reset_index(inplace=True)
+        hist_data_chart['date'] = hist_data_chart['Date'].dt.strftime('%Y-%m-%d') # Format date as string
+        hist_data_chart.rename(columns={'Close': 'close'}, inplace=True)
+        historical_data_list = hist_data_chart[['date', 'close']].to_dict(orient='records') # Send clean list
 
-        # 6. Format Full Response
-
-        # Define keys to check for current price
-        price_keys = ['currentPrice', 'regularMarketPrice', 'lastPrice', 'ask', 'bid']
-        current_price_value = None
-        for key in price_keys:
-            price_val = info_data.get(key)
-            if price_val is not None and isinstance(price_val, (int, float)) and pd.notna(price_val) and np.isfinite(price_val):
-                current_price_value = float(price_val)
-                break
+        # 7. Format Full Response
+        latest_close_price = hist_data['Close'].iloc[-1] if not hist_data.empty else None
+        prev_close_price = hist_data['Close'].iloc[-2] if len(hist_data) > 1 else None
 
         stock_info = StockInfo(
             symbol=info_data.get('symbol', symbol),
-            shortName=info_data.get('shortName'),
-            longName=info_data.get('longName'),
-            sector=info_data.get('sector'),
-            industry=info_data.get('industry'),
+            shortName=info_data.get('shortName'), longName=info_data.get('longName'),
+            sector=info_data.get('sector'), industry=info_data.get('industry'),
             marketCap=info_data.get('marketCap'),
-            currentPrice=current_price_value,
-            dayHigh=info_data.get('dayHigh'),
-            dayLow=info_data.get('dayLow'),
-            previousClose=info_data.get('previousClose')
+            currentPrice=latest_close_price, # Use reliable price
+            dayHigh=hist_data['High'].iloc[-1] if 'High' in hist_data.columns and not hist_data.empty else info_data.get('dayHigh'),
+            dayLow=hist_data['Low'].iloc[-1] if 'Low' in hist_data.columns and not hist_data.empty else info_data.get('dayLow'),
+            previousClose=prev_close_price if prev_close_price else info_data.get('previousClose')
         )
-
         statistics = Statistics(**stats_dict)
-
         ai_predictions = AIPredictions(
             long_term=LongTermPrediction(**long_term_pred_dict),
             short_term=ShortTermPrediction(**short_term_pred_dict),
             intraday=IntradayPrediction(**intraday_pred_dict)
         )
-
         news_sentiment = NewsSentiment(
             stock_news=StockNewsSentiment(**stock_news_dict),
             global_market=GlobalMarketSentiment(**global_market_dict)
         )
 
         return AnalysisResponse(
-            stock_info=stock_info,
-            statistics=statistics,
-            ai_predictions=ai_predictions,
-            news_sentiment=news_sentiment,
-            historical_data=historical_data_list,
+            stock_info=stock_info, statistics=statistics, ai_predictions=ai_predictions,
+            news_sentiment=news_sentiment, historical_data=historical_data_list,
             daily_returns_histogram=daily_returns_list
         )
-
     except HTTPException as e:
         raise e
     except Exception as e:
         print(f"Error details in /analyze for {symbol}: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-

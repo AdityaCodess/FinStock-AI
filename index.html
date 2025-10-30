@@ -14,9 +14,17 @@
 <body>
     <header>
         <h1>FinStock AI</h1>
-        <div class="search-container">
-            <input type="text" id="stock-search" placeholder="Search for Indian stocks... (e.g., RELIANCE or Infosys)">
-            <div id="search-results" class="search-results-dropdown"></div>
+        <div class="header-controls">
+            <div class="date-range-picker">
+                <label for="start-date">From:</label>
+                <input type="date" id="start-date">
+                <label for="end-date">To:</label>
+                <input type="date" id="end-date">
+            </div>
+            <div class="search-container">
+                <input type="text" id="stock-search" placeholder="Search (e.g., RELIANCE) & Press Enter">
+                <div id="search-results" class="search-results-dropdown"></div>
+            </div>
         </div>
     </header>
 
@@ -33,98 +41,101 @@
 
         <section class="widget" id="widget-statistics">
             <h3>Statistical DNA</h3>
-            <table id="statistics-table">
-                <tbody>
-                    <tr>
-                        <td>Data From</td>
-                        <td id="stat-start-date">-</td>
-                    </tr>
-                    <tr>
-                        <td>Data Until</td>
-                        <td id="stat-end-date">-</td>
-                    </tr>
-                    <tr>
-                        <td>Mean Price</td>
-                        <td id="stat-mean">-</td>
-                    </tr>
-                    <tr>
-                        <td>Median Price</td>
-                        <td id="stat-median">-</td>
-                    </tr>
-                    <tr>
-                        <td>Std. Dev Price</td>
-                        <td id="stat-std_deviation">-</td>
-                    </tr>
-                    <tr>
-                        <td>Variance Price</td>
-                        <td id="stat-variance">-</td>
-                    </tr>
-                    <tr>
-                        <td>Skewness</td>
-                        <td id="stat-skewness">-</td>
-                    </tr>
-                    <tr>
-                        <td>Kurtosis</td>
-                        <td id="stat-kurtosis">-</td>
-                    </tr>
-                    <tr>
-                        <td>Prob (Next Day Up)</td>
-                        <td id="stat-probability_next_day_up">-</td>
-                    </tr>
-                    <tr>
-                        <td>Prob (Next Day Down)</td>
-                        <td id="stat-probability_next_day_down">-</td>
-                    </tr>
-                    <tr>
-                        <td>Avg Daily Return %</td>
-                        <td id="stat-mean_daily_return_percent">-</td>
-                    </tr>
-                    <tr>
-                        <td>Volatility (Std Dev Return %)</td>
-                        <td id="stat-std_dev_daily_return_percent">-</td>
-                    </tr>
-                    <tr>
-                        <td>P(Up | Up Yesterday) %</td>
-                        <td id="stat-cond_prob_up_given_up">-</td>
-                    </tr>
-                    <tr>
-                        <td>P(Down | Down Yesterday) %</td>
-                        <td id="stat-cond_prob_down_given_down">-</td>
-                    </tr>
-                    <tr>
-                        <td>P(2 Day Up Streak) %</td>
-                        <td id="stat-prob_2_days_up_streak">-</td>
-                    </tr>
-                    <tr>
-                        <td>P(2 Day Down Streak) %</td>
-                        <td id="stat-prob_2_days_down_streak">-</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <label>Data From</label>
+                    <span id="stat-start-date">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Data Until</label>
+                    <span id="stat-end-date">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Mean Price</label>
+                    <span id="stat-mean">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Median Price</label>
+                    <span id="stat-median">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Std. Dev Price</label>
+                    <span id="stat-std_deviation">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Variance Price</label>
+                    <span id="stat-variance">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Prob (Next Day Up)</label>
+                    <span id="stat-probability_next_day_up">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Prob (Next Day Down)</label>
+                    <span id="stat-probability_next_day_down">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Avg Daily Return %</label>
+                    <span id="stat-mean_daily_return_percent">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Volatility (Std Dev Return %)</label>
+                    <span id="stat-std_dev_daily_return_percent">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>P(Up | Up Yesterday) %</label>
+                    <span id="stat-cond_prob_up_given_up">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>P(Down | Down Yesterday) %</label>
+                    <span id="stat-cond_prob_down_given_down">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>P(2 Day Up Streak) %</label>
+                    <span id="stat-prob_2_days_up_streak">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>P(2 Day Down Streak) %</label>
+                    <span id="stat-prob_2_days_down_streak">-</span>
+                </div>
+            </div>
         </section>
 
         <section class="widget histogram-widget" id="widget-return-histogram">
             <h3>Daily Return Distribution (%)</h3>
             <canvas id="returnHistogramChart"></canvas>
+            <div class="chart-stats">
+                <div class="stat-item">
+                    <label>Skewness</label>
+                    <span id="stat-skewness">-</span>
+                </div>
+                <div class="stat-item">
+                    <label>Kurtosis</label>
+                    <span id="stat-kurtosis">-</span>
+                </div>
+            </div>
         </section>
 
         <section class="widget" id="widget-ai-predictions">
-            <h3>AI Predictions</h3>
+            <h3>AI Predictions <span class="note">(Based on 5Y/30D data)</span></h3>
             <div class="prediction-tabs">
                 <button class="tab-btn active" data-tab="short-term">Short-Term</button>
                 <button class="tab-btn" data-tab="long-term">Long-Term</button>
                 <button class="tab-btn" data-tab="intraday">Intraday</button>
             </div>
+
             <div id="tab-short-term" class="tab-content active">
                 <h4>7-Day Forecast</h4>
-                <p class="prediction-value" id="pred-short-term-value">- %</p>
+                <p class="prediction-value" id="pred-short-term-percent">- %</p>
                 <p class="recommendation" id="pred-short-term-rec">--</p>
             </div>
+
             <div id="tab-long-term" class="tab-content">
                 <h4>1-Year Forecast</h4>
                 <p class="prediction-value" id="pred-long-term-value">₹ --</p>
                 <p class="recommendation" id="pred-long-term-rec">--</p>
             </div>
+
             <div id="tab-intraday" class="tab-content">
                 <h4>Similarity Engine (Placeholder)</h4>
                 <p id="pred-intraday-match">--</p>
@@ -149,7 +160,6 @@
                 <div id="market-headlines" class="articles-container"></div>
             </div>
         </section>
-
         <section class="widget price-chart-widget" id="widget-price-chart">
             <h3>Historical Price Trend</h3>
             <canvas id="priceHistoryChart"></canvas>
@@ -160,9 +170,9 @@
         <div class="loader"></div>
     </div>
 
-    <script src="frontend/js/ui.js"></script>
     <script src="frontend/js/charts.js"></script>
     <script src="frontend/js/main.js"></script>
+    <script src="frontend/js/ui.js"></script>
 </body>
 
 </html>
